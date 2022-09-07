@@ -93,7 +93,7 @@ opt <- Opt(num_burn = 250, num_save = 250)
 After creating the hyperparameters and options, we fit the simulate data by running
 
 ```{r, eval = TRUE, include=TRUE}
-fit <- PMCMC_SIS(X, y, opt=opt)
+#fit <- PMCMC_SIS(X, y, opt=opt)
 ```
 
 
