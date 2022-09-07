@@ -1,0 +1,27 @@
+---
+title: "PMCMC for agent-based SIS model"
+author:  Seungha Um
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PMCMC for agent-based SIS model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction 
+
+This vignette demonstrates how to implement PMCMC for agent-base SIS model using the `agentSIS` package. The small MCMC iterations and particles are used to reduce computation time; in practice, larger values (say, 20000 MCMC iterations and 300 particles) should be used. 
+
+First, we load the requisite packages:
+
+```{r, eval = TRUE, include=TRUE}
+## Load library
+library(tidyverse) # Load the tidyverse, mainly for ggplot
+library(kableExtra) # For fancy tables
+library(agentSIS) # Our package
+library(zeallot) # For the %<-% operator, used when generating data
+options(knitr.table.format = 'markdown')
+```

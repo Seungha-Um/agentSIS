@@ -1,0 +1,19 @@
+Package: agentSIS
+Type: Package
+Title: A package for implementing PMCMC for agent-based SIS model
+Version: 0.1.0
+Author: Seungha Um
+Maintainer: Seungha Um <sheom0808@gmail.com>
+Description: Implement PMCMC for agent-based SIS model 
+License: GPL-2
+Imports:truncnorm, tmvtnorm, zeallot, dplyr, magrittr, rmarkdown, tidyverse, kableExtra, ggpubr, MASS, Rcpp, RcppEigen
+LinkingTo: Rcpp, RcppArmadillo, RcppEigen
+Depends: 
+    R (>= 2.10),
+    Rcpp
+Suggests: 
+    rmarkdown,
+    knitr,
+    zeallot
+RoxygenNote: 7.2.0
+VignetteBuilder: knitr

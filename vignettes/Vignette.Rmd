@@ -1,0 +1,105 @@
+---
+title: "PMCMC for agent-based SIS model"
+author:  Seungha Um
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PMCMC for agent-based SIS model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction 
+
+This vignette demonstrates how to implement PMCMC for agent-base SIS model using the `agentSIS` package. The small MCMC iterations and particles are used to reduce computation time; in practice, larger values (say, 20000 MCMC iterations and 300 particles) should be used. 
+
+First, we load the requisite packages:
+
+```{r, eval = TRUE, include=TRUE}
+## Load library
+library(tidyverse) # Load the tidyverse, mainly for ggplot
+library(kableExtra) # For fancy tables
+library(agentSIS) # Our package
+library(zeallot) 
+library(gmm)
+options(knitr.table.format = 'markdown')
+```
+
+# Setup
+
+The following code creates a function to simulate data from the model.
+
+```{r, eval = TRUE, include=TRUE}
+N <- 50;
+steps <- 30;
+X <- matrix(nrow = 2, ncol = N);
+X[1,] <- 1;
+X[2,] <- rnorm(N);
+
+b_lam0 <- -1; b_lam1 <- 2; 
+b_gam0 <- -1; b_gam1 <- -1;
+Lambda <- fun_rate(b_lam0, b_lam1);
+Gamma <- fun_rate(b_gam0, b_gam1);
+Alpha <- rep(0.1, N)
+Rho <- 0.8
+
+## simulate observations
+true_config <- list(N = N, alpha0 = Alpha, lambda = Lambda,
+                    gamma = Gamma, rho = Rho)
+
+
+sis_simulate <- function (days, true_config) {
+  agent_states <- matrix(NA, nrow = true_config$N, ncol = 1 + days)
+  agent_states[,1] <- (runif(N) < true_config$alpha0)
+  for (d in c(2:(days + 1))) {
+    alpha_t <- rep(NA, N)
+    alpha_t <- sis_get_alpha(agent_states[, d - 1], true_config)
+    agent_states[, d] <- (runif(N) < alpha_t)
+  }
+  y <- apply(agent_states, 2, function(xx) rbinom(n = 1, size = sum(xx), 
+                                                  prob = true_config$rho))
+  return(list(agent_states = agent_states, y = y))
+}
+```
+
+We then create a dataset
+```{r, eval = TRUE, include=TRUE}
+set.seed(2022)
+complete_data <- sis_simulate(days = steps, true_config = true_config);
+y <- complete_data$y;
+## reject the process if observations are zero
+y
+```
+
+Next, we create an object containing the hyperparameters for the model using the `Hypers` function. This function uses default hyperparameters unless specific hyperparameters are provided by the user; see `?Hypers` for more details.
+
+```{r, eval = TRUE, include=TRUE}
+hypers <- Hypers()
+```
+
+
+
+The function `Opts` produces a list of the parameters for running the Markov
+chain for agent-based SIS model. For illustration we use only 250 burn-in and save iterations; the defaults are 5000 for each. `Opts` can also be used to control some features of the chain, such as step_size for MHRW and the number of particles; see `?Opts` for more details.
+
+```{r, eval = TRUE, include=TRUE}
+opt <- Opt(num_burn = 250, num_save = 250)
+```
+
+# Implementing PMCMC for agent-based model 
+
+After creating the hyperparameters and options, we fit the simulate data by running
+
+```{r, eval = TRUE, include=TRUE}
+fit <- PMCMC_SIS(X, y, opt=opt)
+```
+
+
+
+
+
+
+
+
