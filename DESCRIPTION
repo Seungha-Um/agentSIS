@@ -6,7 +6,7 @@ Author: Seungha Um
 Maintainer: Seungha Um <sheom0808@gmail.com>
 Description: Implement PMCMC for agent-based SIS model 
 License: GPL-2
-Imports:truncnorm, tmvtnorm, zeallot, dplyr, magrittr, rmarkdown, tidyverse, kableExtra, ggpubr, MASS, Rcpp, RcppEigen
+Imports:truncnorm, gmm, tmvtnorm, zeallot, dplyr, magrittr, rmarkdown, tidyverse, kableExtra, ggpubr, MASS, Rcpp, RcppEigen
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 Depends: 
     R (>= 2.10),
