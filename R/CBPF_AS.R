@@ -20,7 +20,7 @@
 #'  \item ancestor_mat : (T x P) matrix of indices for sampled particles}
 #' @export
 
-sis_aspf <- function(y, model_config, num_particles){
+CBPF_AS <- function(y, model_config, num_particles){
   num_observations <- length(y)
   loglikelihood <- rep(-Inf, num_observations)
   particles <- array(NA, dim = c(model_config$N, num_observations, num_particles));
@@ -44,6 +44,9 @@ sis_aspf <- function(y, model_config, num_particles){
   for (t in 2 : num_observations){
     sample_p <- logweights + colSums(apply(alphats, 2, function(x) dbinom(model_config$fix_agent[,t], size=1, x, log=TRUE)))
     AS_ind <- sample.int(n = num_particles, size =1 ,prob = lw.normalize(sample_p), replace = TRUE);
+    if(is.na(sum(weights))){
+      stop("change/specify the initial values of parameters.")
+    }
     ancestors <- sample.int(n = num_particles, prob = weights, replace = TRUE);
     ancestors[num_particles] <- AS_ind;
     ancestor_mat[t,] <- ancestors

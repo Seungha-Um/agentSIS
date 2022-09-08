@@ -19,7 +19,7 @@
 #'  \item ancestor_mat : (T x P) matrix of indices for sampled particles}
 #' @export
 
-sis_cbpf <- function(y, model_config, num_particles){
+CBPF <- function(y, model_config, num_particles){
   num_observations <- length(y)
   loglikelihood <- rep(-Inf, num_observations)
   particles <- array(NA, dim = c(model_config$N, num_observations, num_particles));
@@ -40,6 +40,9 @@ sis_cbpf <- function(y, model_config, num_particles){
   est_agent[,1] <- colSums(apply(xts, MARGIN=1, FUN = function(x) x * weights))
 
   for (t in 2 : num_observations){
+    if(is.na(sum(weights))){
+      stop("change/specify the initial values of parameters.")
+    }
     ancestors <- sample.int(n = num_particles, prob = weights, replace = TRUE);
     ancestors[num_particles] <- num_particles
     ancestor_mat[t,] <- ancestors

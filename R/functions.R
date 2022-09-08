@@ -48,14 +48,22 @@ ljacobian <- function(parameters){
 }
 
 lprior_fun <- function(parameters, Hypers){
-  dtmvnorm(c(parameters[1:6], logit(parameters[7])),
-           mean = Hypers$mu, sigma = diag(Hypers$sigma), lower = Hypers$lower,
-           upper = Hypers$upper, log = TRUE)
+  TruncatedNormal::dtmvnorm(c(parameters[1:6], logit(parameters[7])),
+           mu = Hypers$mu, sigma = diag(Hypers$sigma), lb = Hypers$lower,
+           ub= Hypers$upper, log = TRUE)
 }
 
 lprior_fix_gam <- function(parameters, Hypers){
-  dtmvnorm(c(parameters[1:4], logit(parameters[7])),
-                     mean = Hypers$mu[c(1:4,7)], sigma = diag(Hypers$sigma[c(1:4,7)]), lower = Hypers$lower[c(1:4,7)],
-                     upper = Hypers$upper[c(1:4,7)], log = TRUE)
+  TruncatedNormal::dtmvnorm(c(parameters[1:4], logit(parameters[7])),
+                     mu = Hypers$mu[c(1:4,7)], sigma = diag(Hypers$sigma[c(1:4,7)]), lb = Hypers$lower[c(1:4,7)],
+                     ub = Hypers$upper[c(1:4,7)], log = TRUE)
 }
+
+lprior_PG <- function(parameters, Hypers){
+  TruncatedNormal::dtmvnorm(parameters[1:6],
+           mu = Hypers$mu[1:6], sigma = diag(Hypers$sigma[1:6]), lb = Hypers$lower[1:6],
+           ub = Hypers$upper[1:6], log = TRUE)
+}
+
+
 

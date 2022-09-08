@@ -23,7 +23,6 @@ library(tidyverse) # Load the tidyverse, mainly for ggplot
 library(kableExtra) # For fancy tables
 library(agentSIS) # Our package
 library(zeallot) 
-library(gmm)
 options(knitr.table.format = 'markdown')
 ```
 
@@ -32,7 +31,8 @@ options(knitr.table.format = 'markdown')
 The following code creates a function to simulate data from the model.
 
 ```{r, eval = TRUE, include=TRUE}
-N <- 50;
+set.seed(2022)
+N <- 30;
 steps <- 30;
 X <- matrix(nrow = 2, ncol = N);
 X[1,] <- 1;
@@ -66,7 +66,6 @@ sis_simulate <- function (days, true_config) {
 
 We then create a dataset
 ```{r, eval = TRUE, include=TRUE}
-set.seed(2022)
 complete_data <- sis_simulate(days = steps, true_config = true_config);
 y <- complete_data$y;
 ## reject the process if observations are zero
@@ -78,8 +77,6 @@ Next, we create an object containing the hyperparameters for the model using the
 ```{r, eval = TRUE, include=TRUE}
 hypers <- Hypers()
 ```
-
-
 
 The function `Opts` produces a list of the parameters for running the Markov
 chain for agent-based SIS model. For illustration we use only 250 burn-in and save iterations; the defaults are 5000 for each. `Opts` can also be used to control some features of the chain, such as step_size for MHRW and the number of particles; see `?Opts` for more details.
@@ -93,7 +90,10 @@ opt <- Opt(num_burn = 250, num_save = 250)
 After creating the hyperparameters and options, we fit the simulate data by running
 
 ```{r, eval = TRUE, include=TRUE}
-#fit <- PMCMC_SIS(X, y, opt=opt)
+opt <- Opt(num_burn = 100, num_save = 100)
+fit <- PMMH_SIS(X, y, opt = opt)
+#fit <- PG_SIS(X, y)
+#fit <- PG_AS_SIS(X, y)
 ```
 
 
