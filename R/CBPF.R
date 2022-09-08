@@ -40,9 +40,6 @@ CBPF <- function(y, model_config, num_particles){
   est_agent[,1] <- colSums(apply(xts, MARGIN=1, FUN = function(x) x * weights))
 
   for (t in 2 : num_observations){
-    if(is.na(sum(weights))){
-      stop("change/specify the initial values of parameters.")
-    }
     ancestors <- sample.int(n = num_particles, prob = weights, replace = TRUE);
     ancestors[num_particles] <- num_particles
     ancestor_mat[t,] <- ancestors
@@ -58,6 +55,9 @@ CBPF <- function(y, model_config, num_particles){
     loglikelihood[t] <- log(mean(exp(logweights)));
     logw <- logW + logweights;
     weights <- lw.normalize(logw);
+    if(is.na(sum(weights))){
+      stop("change/specify the initial values of parameters.")
+    }
     #est_agent[,t] <- colSums(apply(xts, MARGIN=1, FUN = function(x) x * weights))
     if(t == num_observations) particles[,t,] <- xts
   }

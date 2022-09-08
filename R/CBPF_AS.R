@@ -44,9 +44,6 @@ CBPF_AS <- function(y, model_config, num_particles){
   for (t in 2 : num_observations){
     sample_p <- logweights + colSums(apply(alphats, 2, function(x) dbinom(model_config$fix_agent[,t], size=1, x, log=TRUE)))
     AS_ind <- sample.int(n = num_particles, size =1 ,prob = lw.normalize(sample_p), replace = TRUE);
-    if(is.na(sum(weights))){
-      stop("change/specify the initial values of parameters.")
-    }
     ancestors <- sample.int(n = num_particles, prob = weights, replace = TRUE);
     ancestors[num_particles] <- AS_ind;
     ancestor_mat[t,] <- ancestors
@@ -62,6 +59,9 @@ CBPF_AS <- function(y, model_config, num_particles){
     loglikelihood[t] <- log(mean(exp(logweights)));
     logw <- logW + logweights;
     weights <- lw.normalize(logw);
+    if(is.na(sum(weights))){
+      stop("change/specify the initial values of parameters.")
+    }
     #est_agent[,t] <- colSums(apply(xts, MARGIN=1, FUN = function(x) x * weights))
     if(t == num_observations) particles[,t,] <- xts
   }
