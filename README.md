@@ -16,7 +16,7 @@ The packages can be installed with the `devtools` package:
 
 The package with the vignettes can be installed with
 
-    devtools::install_github(repo='Seungha-Um/skewBART', build_vignettes = TRUE) 
+    devtools::install_github(repo='Seungha-Um/agentSIS', build_vignettes = TRUE) 
 
-and then accessed by running `browseVignettes("skewBART")` (to reproduce
+and then accessed by running `browseVignettes("agentSIS")` (to reproduce
 our results, one will need to increase the number of MCMC samples).
