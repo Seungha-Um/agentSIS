@@ -20,3 +20,5 @@ The package with the vignettes can be installed with
 
 and then accessed by running `browseVignettes("agentSIS")` (to reproduce
 our results, one will need to increase the number of MCMC samples).
+Alternatively, vignettes are available at
+[Simulation](https://rpubs.com/sheom0808/981711)

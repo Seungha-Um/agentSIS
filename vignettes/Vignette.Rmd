@@ -13,7 +13,49 @@ vignette: >
 
 # Introduction 
 
-This vignette demonstrates how to implement PMCMC for agent-base SIS model using the `agentSIS` package. The small MCMC iterations and particles are used to reduce computation time; in practice, larger values (say, 20000 MCMC iterations and 300 particles) should be used. 
+This vignette demonstrates how to implement particle particle Markov-chain Monte Carlo (PMCMC) for disease transmission using the `agentSIS` package. The small MCMC iterations and particles are used to reduce computation time; in practice, larger values (say, 20000 MCMC iterations and 300 particles) should be used. 
+
+
+# Statistcal Agent-based SIS Model
+
+Agent-based model (ABM) is a simulation based modeling technique that aims to describe complex dynamic processes with a bottom-up approach. ABM provides considerable flexibility by explaining the complex dynamic process using simple rules that incorporate characteristics of individual entities (agents) and their interaction. For example, infectious disease is transmitted by the interaction between neighbors and by the attributes of each agent whose states fall into susceptible or infected states. 
+
+In the disease transmission, the observed prevalence at time $t$ can be modeled as  
+\begin{equation}\label{model:bin}
+    y_t \vert I_t,\rho \sim \operatorname{Binomial}(I_t,\rho)
+\end{equation}
+where the detection probability $\rho$ accounts for the under-reported prevalence.
+
+The observed prevalence at time $t$ depends on unobserved latent agent states $\mathbf{X}_t = (X_t^1, \ldots, X_t^N)$, which can be modeled as an independent Bernoulli distribution;
+\begin{equation}\label{model:ber}
+    X_t^n \ \vert \ \xi_{t-1}^n \sim \operatorname{Beroulli}(\xi_{t-1}^n).
+\end{equation}
+where $\xi_{t-1}^n$ corresponds to the transition probability between susceptible and infected state for agent $n$. Define agent-specific initial infection rate $\alpha_0^n$, infection rate $\lambda^n$ and recovery rate $\gamma^n$ as 
+\begin{align*}
+    \alpha_0^n = \left(1 + \exp(-\beta_{\alpha_0}^Tz^n)\right)^{-1}, \quad
+    \lambda^n = \left(1 + \exp(-\beta_\lambda^Tz^n)\right)^{-1}, \quad
+    \gamma^n = \left(1+\exp(-\beta_\gamma^Tz^n)\right)^{-1}
+\end{align*}
+where $\beta_{\alpha_0},\beta_\lambda,\beta_\gamma\in\mathbb{R}^d$ are parameters and $z^n\in\mathbb{R}^d$ are the covariates of agent $n$. 
+
+
+Given the initial transition probability $\xi_0^n=\alpha_0^n$, the latent state $X_t$ for $t=2,\ldots,T$ evolves according to a Markov process with transition probability \abovedisplayskip14pt\belowdisplayskip14pt
+\begin{align*}
+    \xi^{n}_{t-1}= \begin{cases}\lambda^{n} \mathcal{D}(n)^{-1} \sum_{m \in \mathcal{N}_n} X_{t-1}^{m}, & \text { if } x_{t-1}^{n}=0 \\ 1-\gamma^{n}, & \text { if } x_{t-1}^{n}=1\end{cases}
+\end{align*}
+where $\mathcal{N}_n$ is a neighborhood for agent $n$ and $\mathcal{D}(n)$ is the number of neighbors of agent $n$. This transition probability depends only on the last value of the state of agents which is defined as a first-order Markovian. Since attributes of agents $z^n$ account for the infection and recovery rate, the transition probability $\xi_{t-1}^n$ is defined uniquely for each agent. 
+
+While the underlying dynamics of the disease transmission are governed by agent states $\mathbf{X}_t$, these states are not observed directly. For example, public health agencies only report aggregate data at the population level rather than at the individual level to protect individuals' privacy; the number of infected agents is reported on a daily basis in COVID-19 data. As a result, the hidden Markov model represents our best understanding of ABM dynamics where the individual agent's states are treated as hidden and estimated using filtering approaches such as particle filter (PF). 
+
+
+
+This figure highlights that it is suitable to treat agent states as hidden states and the heterogeneous transition rates between agents cannot be ignored whereas aggregate counts are observed.
+ 
+ 
+ 
+ 
+ 
+## Load packages
 
 First, we load the requisite packages:
 
@@ -23,10 +65,11 @@ library(tidyverse) # Load the tidyverse, mainly for ggplot
 library(kableExtra) # For fancy tables
 library(agentSIS) # Our package
 library(zeallot) 
+library(reshape2)
 options(knitr.table.format = 'markdown')
 ```
 
-# Setup
+## Setup
 
 The following code creates a function to simulate data from the model.
 
@@ -68,8 +111,6 @@ We then create a dataset
 ```{r, eval = TRUE, include=TRUE}
 complete_data <- sis_simulate(days = steps, true_config = true_config);
 y <- complete_data$y;
-## reject the process if observations are zero
-y
 ```
 
 Next, we create an object containing the hyperparameters for the model using the `Hypers` function. This function uses default hyperparameters unless specific hyperparameters are provided by the user; see `?Hypers` for more details.
@@ -85,11 +126,39 @@ chain for agent-based SIS model. For illustration we use only 250 burn-in and sa
 opt <- Opt(num_burn = 100, num_save = 100)
 ```
 
-# Implementing PMCMC for agent-based model 
+## Genterated data
 
-For PMCMC, there are PHHM (MH scheme) and Particle Gibbs (Gibbs sampling scheme). To improve the performance of Particle Gibbs (PG), we can add ancestor sampling step. Our package can implement PMMH, PG and PG with ancestor sampling. 
+```{r, eval = TRUE, fig.width=5, fig.height=4.5, fig.align='center'}
+## genrate figure relecting hidden states and observations
+A <- complete_data$agent_states
+longData <- melt(A)
+ind <- longData$value == TRUE
 
-The functions create hyperparameters and options by defalts if not provided. We fit the simulate data by running
+longData$status <- "Susceptible"
+longData$status[ind] <- "Infected"
+longData$status <- factor(longData$status, levels=c("Susceptible", "Infected"))
+
+df <- data.frame(x=c(1:length(y)), y = y)
+
+ggplot(longData, aes(x = Var2, y=Var1)) + 
+  geom_tile(aes(fill = status, width=0.8, height=0.8), size=2) + 
+  scale_fill_manual(values=c("grey90","grey60")) + 
+  geom_line(data=df, aes(x = x, y = y), size=1) + 
+  xlab("time") + ylab("agents") + 
+  theme_bw() + 
+  theme(legend.position = "bottom", legend.title=element_blank(), 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) 
+
+```
+
+The figure represents simulated hidden states and observations from agent-based SIS model. Black line represents observed infection counts and each grid represents agent state which is hidden. The color scale of grid indicates agent state (susceptible or infected) and the agent indices (y-axis) are sorted by magnitude of infection rates. This figure highlights that it is suitable to treat agent states as hidden states and the heterogeneous transition rates between agents cannot be ignored whereas aggregate counts are observed.
+
+## Implementing PMCMC for agent-based model 
+
+For PMCMC, there are PHHM (MH scheme) and Particle Gibbs (Gibbs sampling scheme). To improve the performance of Particle Gibbs (PG), we can add the ancestor sampling step. Our package can implement PMMH, PG and PG with ancestor sampling. 
+
+The functions create hyperparameters and options by defaults if not provided. We fit the simulate data by running
 
 ```{r, eval = TRUE, include=TRUE}
 fit_PMMH <- PMMH_SIS(X, y, opt = opt)
@@ -105,37 +174,39 @@ est_mat <- data.frame(time = rep(c(0:steps), 4),
                               fit_PG_AS$obs_counts_mean), 
                       grp = rep(c("observation","PMMH", "PG", "PGAS"), 
                                 each=length(fit_PG$obs_counts_mean)))
+```
 
+```{r, eval = TRUE, fig.width=6, fig.height=4, fig.align='center'}
 ggplot(est_mat) + 
   geom_line(aes(x = time, y = est, color = grp, linetype = grp)) + theme_bw() +
   scale_color_manual(values=c("#999999", "#E69F00", "#117733", "#CC6677")) + 
   scale_linetype_manual(values=c("dashed","solid","solid","solid")) + 
-  theme(legend.title=element_blank(),legend.position="bottom")
+  theme(legend.title=element_blank(),legend.position="bottom") + ylab("estimated counts")
 
 ```
 
-Parameter estimation with 95\% CI from PMMH
+Posterior mean with 95\% CI from PMMH
 
 ```{r, eval = TRUE, include=TRUE}
 table_PMMH <- rbind(post_mean = colMeans(fit_PMMH$param_mat),
 apply(fit_PMMH$param_mat, 2, function(x) quantile(x, c(0.025, 0.975))))
-colnames(table_PMMH) <- c("alpha0", "alpha1", "lambda0", "lambda1","gamma0","gamma1","rho")
+colnames(table_PMMH) <-  c("$\\alpha_0$", "$\\alpha_1$", "$\\lambda_0$", "$\\lambda_1$","$\\gamma_0$","$\\gamma_1$","$\\rho$")
 kable(table_PMMH)
 ```
 
-Parameter estimation with 95\% CI from PG
+Posterior mean with 95\% CI from PG
 ```{r, eval = TRUE, include=TRUE}
 table_PG <- rbind(post_mean = colMeans(fit_PG$param_mat),
 apply(fit_PG$param_mat, 2, function(x) quantile(x, c(0.025, 0.975))))
-colnames(table_PG) <- c("alpha0", "alpha1", "lambda0", "lambda1","gamma0","gamma1","rho")
+colnames(table_PG) <-  c("$\\alpha_0$", "$\\alpha_1$", "$\\lambda_0$", "$\\lambda_1$","$\\gamma_0$","$\\gamma_1$","$\\rho$")
 kable(table_PG)
 ```
 
-Parameter estimation with 95\% CI from PG with ancestor sampling
+Posterior mean with 95\% CI from PG with ancestor sampling
 ```{r, eval = TRUE, include=TRUE}
 table_PG_AS <- rbind(post_mean = colMeans(fit_PG_AS$param_mat),
 apply(fit_PG_AS$param_mat, 2, function(x) quantile(x, c(0.025, 0.975))))
-colnames(table_PG_AS) <- c("alpha0", "alpha1", "lambda0", "lambda1","gamma0","gamma1","rho")
+colnames(table_PG_AS) <- c("$\\alpha_0$", "$\\alpha_1$", "$\\lambda_0$", "$\\lambda_1$","$\\gamma_0$","$\\gamma_1$","$\\rho$")
 kable(table_PG_AS)
 ```
 

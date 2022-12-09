@@ -32,5 +32,5 @@ The package with the vignettes can be installed with
 devtools::install_github(repo='Seungha-Um/agentSIS', build_vignettes = TRUE) 
 ```
 
-and then accessed by running `browseVignettes("agentSIS")` (to reproduce our results, one will need to increase the number of MCMC samples). 
+and then accessed by running `browseVignettes("agentSIS")` (to reproduce our results, one will need to increase the number of MCMC samples). Alternatively, vignettes are available at [Simulation](https://rpubs.com/sheom0808/981711)
 
